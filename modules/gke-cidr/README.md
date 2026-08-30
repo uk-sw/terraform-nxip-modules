@@ -36,13 +36,31 @@ Run this once per cluster, the pod/service ranges are checked against
 every other allocation already registered in your organization, cluster
 CIDR conflicts across a fleet aren't possible by construction.
 
+**If your environment/region already has a structural landing point**
+(e.g. a `kind`-tagged region block), pass `parent_subnet_id` instead of
+`environment`/`region`. Only one kind-tagged landing point is allowed per
+environment/region/family - found this from real testing against
+[nxip-terraform-lab](https://github.com/uk-sw/nxip-terraform-lab)'s
+existing region block, this module's own `environment`/`region` path
+fails with a `409` in that case:
+
+```hcl
+module "cluster_cidrs" {
+  source = "github.com/uk-sw/terraform-nxip-modules//modules/gke-cidr"
+
+  cluster_name     = "payments-prod"
+  parent_subnet_id = nxip_subnet.production_us_east_region.id
+}
+```
+
 ## Inputs
 
 | Name | Description | Default |
 |---|---|---|
 | `cluster_name` | Used to name the carved subnets for identification in nxip - not passed to GCP. | (required) |
-| `environment` | Routed to the matching nxip pool, same as any other `nxip_subnet`. | (required) |
-| `region` | GCP region. | (required) |
+| `environment` | Routed to the matching nxip pool, same as any other `nxip_subnet`. | Required unless `parent_subnet_id` is set. |
+| `region` | GCP region. | Required unless `parent_subnet_id` is set. |
+| `parent_subnet_id` | Nest under this existing subnet instead - see above. | `null` |
 | `pod_prefix_length` | Size of the cluster (pod) CIDR block. | `20` (4,096 addresses) |
 | `service_prefix_length` | Size of the services CIDR block. | `24` (256 addresses) |
 

@@ -5,12 +5,20 @@ variable "cluster_name" {
 
 variable "environment" {
   type        = string
-  description = "Routed to the matching nxip pool for this environment/region, same as any other nxip_subnet."
+  default     = null
+  description = "Routed to the matching nxip pool for this environment/region, same as any other nxip_subnet. Required unless parent_subnet_id is set."
 }
 
 variable "region" {
   type        = string
-  description = "GCP region, e.g. europe-west3."
+  default     = null
+  description = "GCP region, e.g. europe-west3. Required unless parent_subnet_id is set."
+}
+
+variable "parent_subnet_id" {
+  type        = string
+  default     = null
+  description = "Nest under this existing subnet instead of auto-resolving by environment/region. Only one kind-tagged landing point is allowed per environment/region/family - if one already exists (e.g. a region block), this module's own kind tags would otherwise conflict with it (HTTP 409). Pass that subnet's id here instead."
 }
 
 variable "pod_prefix_length" {
