@@ -50,8 +50,8 @@ version, active discovery of *existing* clusters' already-assigned CIDRs
 (retroactive import, the same pattern as `terraform import` for existing
 subnets), and eventually a validating admission webhook that blocks a
 cluster from being misconfigured with a colliding CIDR even outside
-Terraform entirely, is real new engineering, tracked separately in
-[nxip's roadmap](https://github.com/uk-sw/net-saas/blob/main/docs/roadmap.md#7-multi-cluster-kubernetes-cidr-authority-not-started-strong-candidate).
+Terraform entirely, is real new engineering, tracked separately as bet #7
+in [nxip's roadmap](https://github.com/uk-sw/net-saas/blob/main/docs/roadmap.md).
 
 ## Requirements
 
