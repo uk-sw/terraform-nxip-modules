@@ -6,36 +6,34 @@ terraform {
   }
 }
 
-# Pod and service ranges are independent top-level allocations from the
-# same pool - AKS keeps them administratively separate (kubenet requires
-# they don't overlap each other or the VNet), so these are siblings, not
-# nested. `kind` tags them as structural/reserved-for-Kubernetes, so
-# they're never mistaken for a regular leaf subnet elsewhere in the
-# hierarchy, and so this module can be called once per cluster without
-# colliding with any other cluster in the fleet - guaranteed by the same
-# non-overlap check every other nxip_subnet already gets.
+# Pod and service ranges are independent top-level allocations from the pool
+# for this environment and region, never nested under the VNet or under each
+# other. Both must stay clear of the VNet address space: kubenet routes pod
+# traffic itself and Azure refuses ranges that overlap the VNet or each
+# other. Allocating them top level is what keeps them clear, because nxip
+# will not hand out a block overlapping anything it already knows about, and
+# the VNet is one of those blocks once it is registered.
 #
-# environment/region and parent_subnet_id are mutually exclusive, same as
-# nxip_subnet itself - when parent_subnet_id is set, environment/region are
-# left null so this nests under that subnet instead of auto-resolving a new
-# top-level landing point (which would conflict with one that already
-# exists for this environment/region/family - see variables.tf).
+# Register the VNet in nxip first (npx nxip-cli scan azure, or import it).
+# A VNet nxip has never seen is the one overlap it cannot prevent.
+#
+# `kind` marks these as reserved for Kubernetes so they are never mistaken
+# for a regular leaf subnet, and so this module can be called once per
+# cluster without colliding with any other cluster in the fleet.
 resource "nxip_subnet" "pod_cidr" {
-  environment      = var.parent_subnet_id == null ? var.environment : null
-  region           = var.parent_subnet_id == null ? var.region : null
-  parent_subnet_id = var.parent_subnet_id
-  family           = "IPV4"
-  prefix_length    = var.pod_prefix_length
-  kind             = "k8s-pod-cidr"
-  name             = "${var.cluster_name}-pod-cidr"
+  environment   = var.environment
+  region        = var.region
+  family        = "IPV4"
+  prefix_length = var.pod_prefix_length
+  kind          = "k8s-pod-cidr"
+  name          = "${var.cluster_name}-pod-cidr"
 }
 
 resource "nxip_subnet" "service_cidr" {
-  environment      = var.parent_subnet_id == null ? var.environment : null
-  region           = var.parent_subnet_id == null ? var.region : null
-  parent_subnet_id = var.parent_subnet_id
-  family           = "IPV4"
-  prefix_length    = var.service_prefix_length
-  kind             = "k8s-service-cidr"
-  name             = "${var.cluster_name}-service-cidr"
+  environment   = var.environment
+  region        = var.region
+  family        = "IPV4"
+  prefix_length = var.service_prefix_length
+  kind          = "k8s-service-cidr"
+  name          = "${var.cluster_name}-service-cidr"
 }

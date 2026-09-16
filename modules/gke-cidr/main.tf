@@ -7,31 +7,29 @@ terraform {
 }
 
 # GKE's ip_allocation_policy takes an explicit pod (cluster) CIDR and
-# services CIDR when not referencing pre-created VPC secondary ranges -
-# the same two independent, non-overlapping blocks every other cloud in
-# this repo needs, just under GCP's own naming for them.
+# services CIDR when it is not referencing pre-created VPC secondary ranges.
+# Both are secondary ranges, so neither may overlap the subnet's primary
+# range or each other. They are allocated top level from the pool for this
+# environment and region, never nested under the VPC block, which is what
+# keeps them clear of it: nxip will not hand out a block overlapping
+# anything it already knows about.
 #
-# environment/region and parent_subnet_id are mutually exclusive, same as
-# nxip_subnet itself - when parent_subnet_id is set, environment/region are
-# left null so this nests under that subnet instead of auto-resolving a new
-# top-level landing point (which would conflict with one that already
-# exists for this environment/region/family - see variables.tf).
+# Register the VPC in nxip first (npx nxip-cli scan, or import it). A
+# network nxip has never seen is the one overlap it cannot prevent.
 resource "nxip_subnet" "pod_cidr" {
-  environment      = var.parent_subnet_id == null ? var.environment : null
-  region           = var.parent_subnet_id == null ? var.region : null
-  parent_subnet_id = var.parent_subnet_id
-  family           = "IPV4"
-  prefix_length    = var.pod_prefix_length
-  kind             = "k8s-pod-cidr"
-  name             = "${var.cluster_name}-pod-cidr"
+  environment   = var.environment
+  region        = var.region
+  family        = "IPV4"
+  prefix_length = var.pod_prefix_length
+  kind          = "k8s-pod-cidr"
+  name          = "${var.cluster_name}-pod-cidr"
 }
 
 resource "nxip_subnet" "service_cidr" {
-  environment      = var.parent_subnet_id == null ? var.environment : null
-  region           = var.parent_subnet_id == null ? var.region : null
-  parent_subnet_id = var.parent_subnet_id
-  family           = "IPV4"
-  prefix_length    = var.service_prefix_length
-  kind             = "k8s-service-cidr"
-  name             = "${var.cluster_name}-service-cidr"
+  environment   = var.environment
+  region        = var.region
+  family        = "IPV4"
+  prefix_length = var.service_prefix_length
+  kind          = "k8s-service-cidr"
+  name          = "${var.cluster_name}-service-cidr"
 }

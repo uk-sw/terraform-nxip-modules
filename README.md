@@ -63,3 +63,25 @@ in [nxip's roadmap](https://github.com/uk-sw/net-saas/blob/main/docs/roadmap.md)
 - The relevant cloud provider (`aws`, `azurerm`, or `google`) configured
   as normal, these modules only carve the CIDR, they don't touch cloud
   credentials or provision anything cloud-side themselves.
+
+## Placement rules, and the one thing to do first
+
+Kubernetes ranges fall into two kinds, and they are placed differently:
+
+- **Real, routable blocks** (the EKS VPC subnet) belong inside your VPC.
+  Pass `vpc_parent_subnet_id` to nest them under the VPC block registered
+  in nxip.
+- **Virtual ranges** (Kubernetes service ranges everywhere, and AKS and GKE
+  pod ranges) must NOT overlap the VPC or VNet. AWS refuses a cluster whose
+  service CIDR overlaps the VPC's own CIDR
+  ([API reference](https://docs.aws.amazon.com/eks/latest/APIReference/API_KubernetesNetworkConfigRequest.html)),
+  and Azure and GCP have the same rule in their own terms. These are always
+  allocated top level from the environment and region pool, never nested
+  under a network block.
+
+**Register your VPCs and VNets in nxip before creating clusters**
+(`npx nxip-cli scan aws azure`, or import them). Top-level allocation keeps
+these ranges clear of your networks because nxip refuses to hand out
+anything overlapping a block it already knows about. A network nxip has
+never seen is the one overlap it cannot prevent, and the cloud will reject
+the cluster at create time.

@@ -54,31 +54,23 @@ Run this a second time for a second cluster (`payments-staging`,
 guaranteed distinct from every cluster that came before, cluster-by-cluster
 math you'd otherwise have to track by hand.
 
-**If your environment/region already has a structural landing point**
-(e.g. a `kind`-tagged region block), pass `parent_subnet_id` instead of
-`environment`/`region`. Only one kind-tagged landing point is allowed per
-environment/region/family - found this from real testing against
-[nxip-terraform-lab](https://github.com/uk-sw/nxip-terraform-lab)'s
-existing region block, this module's own `environment`/`region` path
-fails with a `409` in that case:
+**Where these ranges are placed, and why it matters.** Both the pod and
+service ranges must stay clear of the VNet address space, and of each
+other. They are allocated top level from the pool for this environment and
+region, never nested under the VNet block, which is what keeps them
+clear of it: nxip refuses to hand out anything overlapping a block it
+already knows about.
 
-```hcl
-module "cluster_cidrs" {
-  source = "github.com/uk-sw/terraform-nxip-modules//modules/aks-cidr"
-
-  cluster_name     = "payments-prod"
-  parent_subnet_id = nxip_subnet.production_us_east_region.id
-}
-```
+**Register the VNet in nxip first** (`npx nxip-cli scan azure`, or import it). A network
+nxip has never seen is the one overlap it cannot prevent.
 
 ## Inputs
 
 | Name | Description | Default |
 |---|---|---|
 | `cluster_name` | Used to name the carved subnets for identification in nxip - not passed to Azure. | (required) |
-| `environment` | Routed to the matching nxip pool, same as any other `nxip_subnet`. | Required unless `parent_subnet_id` is set. |
-| `region` | Azure region. | Required unless `parent_subnet_id` is set. |
-| `parent_subnet_id` | Nest under this existing subnet instead - see above. | `null` |
+| `environment` | Routed to the matching nxip pool, same as any other `nxip_subnet`. | (required) |
+| `region` | Azure region. | (required) |
 | `pod_prefix_length` | Size of the pod CIDR block. | `20` (4,096 addresses) |
 | `service_prefix_length` | Size of the service CIDR block. | `24` (256 addresses) |
 
