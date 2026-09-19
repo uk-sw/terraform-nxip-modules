@@ -79,6 +79,27 @@ Kubernetes ranges fall into two kinds, and they are placed differently:
   allocated top level from the environment and region pool, never nested
   under a network block.
 
+### Known limitation: these ranges are landing points
+
+Every range these modules create carries a `kind` (`k8s-service-cidr`,
+`k8s-pod-cidr`, and `k8s-vpc-cidr` when the EKS VPC subnet is not nested).
+That is what keeps the virtual ranges directly in the pool: a subnet with a
+`kind` is never placed inside another. But in nxip a `kind` on a subnet that
+sits directly in a pool also makes it a *landing point*, the subnet that
+ordinary requests for the same environment, region and family (no
+`parent_subnet_id`) are placed inside. So, in any environment and region
+where you use these modules:
+
+- **Next to a region block**, every ordinary subnet request there fails with
+  `More than one structural subnet matches environment ...` (409), because
+  it now matches two landing points.
+- **With no other landing point**, ordinary subnets would be placed inside
+  the Kubernetes service or pod range, which never exists on the network.
+
+Until this is fixed, create your other subnets in that environment and
+region with `parent_subnet_id` rather than by environment and region. See
+[nx-ip.com/docs/troubleshooting#ambiguous-landing-point](https://nx-ip.com/docs/troubleshooting#ambiguous-landing-point).
+
 **Register your VPCs and VNets in nxip before creating clusters**
 (`npx nxip-cli scan aws azure`, or import them). Top-level allocation keeps
 these ranges clear of your networks because nxip refuses to hand out
