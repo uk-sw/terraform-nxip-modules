@@ -79,6 +79,12 @@ Kubernetes ranges fall into two kinds, and they are placed differently:
   allocated top level from the environment and region pool, never nested
   under a network block.
 
+**Register your VPCs and VNets in nxip before creating clusters**
+(`npx nxip-cli scan aws azure`, or import them). Top-level allocation keeps
+these ranges clear of your networks because nxip refuses to hand out
+anything overlapping a block it already knows about. A network nxip has
+never seen is the one overlap it cannot prevent, and the cloud will reject
+the cluster at create time.
 ### Known limitation: these ranges are landing points
 
 Every range these modules create carries a `kind` (`k8s-service-cidr`,
@@ -100,9 +106,3 @@ Until this is fixed, create your other subnets in that environment and
 region with `parent_subnet_id` rather than by environment and region. See
 [nx-ip.com/docs/troubleshooting#ambiguous-landing-point](https://nx-ip.com/docs/troubleshooting#ambiguous-landing-point).
 
-**Register your VPCs and VNets in nxip before creating clusters**
-(`npx nxip-cli scan aws azure`, or import them). Top-level allocation keeps
-these ranges clear of your networks because nxip refuses to hand out
-anything overlapping a block it already knows about. A network nxip has
-never seen is the one overlap it cannot prevent, and the cloud will reject
-the cluster at create time.
