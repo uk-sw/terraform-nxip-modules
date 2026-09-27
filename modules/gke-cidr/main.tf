@@ -2,6 +2,8 @@ terraform {
   required_providers {
     nxip = {
       source = "uk-sw/nxip"
+      # landing_point arrived in provider 0.9.
+      version = "~> 0.9"
     }
   }
 }
@@ -16,12 +18,18 @@ terraform {
 #
 # Register the VPC in nxip first (npx nxip-cli scan, or import it). A
 # network nxip has never seen is the one overlap it cannot prevent.
+#
+# `kind` keeps both ranges directly in the pool. landing_point = false stops
+# them also becoming the subnet that ordinary requests for this environment
+# and region are placed inside: neither range exists on the network, and
+# next to a real region block they would make every such request ambiguous.
 resource "nxip_subnet" "pod_cidr" {
   environment   = var.environment
   region        = var.region
   family        = "IPV4"
   prefix_length = var.pod_prefix_length
   kind          = "k8s-pod-cidr"
+  landing_point = false
   name          = "${var.cluster_name}-pod-cidr"
 }
 
@@ -31,5 +39,6 @@ resource "nxip_subnet" "service_cidr" {
   family        = "IPV4"
   prefix_length = var.service_prefix_length
   kind          = "k8s-service-cidr"
+  landing_point = false
   name          = "${var.cluster_name}-service-cidr"
 }

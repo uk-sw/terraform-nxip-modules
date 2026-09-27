@@ -2,6 +2,8 @@ terraform {
   required_providers {
     nxip = {
       source = "uk-sw/nxip"
+      # landing_point arrived in provider 0.9.
+      version = "~> 0.9"
     }
   }
 }
@@ -12,6 +14,11 @@ terraform {
 # actually gets deployed as the real aws_subnet nodes and pods launch into,
 # so it belongs inside the VPC: pass vpc_parent_subnet_id to nest it under
 # the VPC block you already registered in nxip.
+#
+# landing_point is false either way. Nested under the VPC it could not be
+# one anyway. Left top level, its kind would otherwise make it the subnet
+# that ordinary requests for this environment and region are placed inside,
+# and this is one cluster's node subnet, not a block to carve others from.
 resource "nxip_subnet" "vpc_cidr" {
   environment      = var.vpc_parent_subnet_id == null ? var.environment : null
   region           = var.vpc_parent_subnet_id == null ? var.region : null
@@ -19,6 +26,7 @@ resource "nxip_subnet" "vpc_cidr" {
   family           = "IPV4"
   prefix_length    = var.vpc_prefix_length
   kind             = "k8s-vpc-cidr"
+  landing_point    = false
   name             = "${var.cluster_name}-vpc-cidr"
 }
 
@@ -37,11 +45,17 @@ resource "nxip_subnet" "vpc_cidr" {
 # The one case this cannot protect you from is a VPC that nxip has never
 # seen. Register it (npx nxip-cli scan, or import it) before creating
 # clusters, or AWS will reject the cluster at create time.
+#
+# `kind` keeps the range directly in the pool. landing_point = false stops
+# it also becoming the subnet that ordinary requests for this environment
+# and region are placed inside: the range never exists on the network, and
+# next to a real region block it would make every such request ambiguous.
 resource "nxip_subnet" "service_cidr" {
   environment   = var.environment
   region        = var.region
   family        = "IPV4"
   prefix_length = var.service_prefix_length
   kind          = "k8s-service-cidr"
+  landing_point = false
   name          = "${var.cluster_name}-service-cidr"
 }

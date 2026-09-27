@@ -58,8 +58,8 @@ in [nxip's roadmap](https://github.com/uk-sw/net-saas/blob/main/docs/roadmap.md)
 - A [nxip](https://nx-ip.com/signup) account and API key (`NXIP_API_KEY`
   env var, or set `api_key` on the provider block).
 - Terraform `~> 1.x`, the [`uk-sw/nxip`](https://registry.terraform.io/providers/uk-sw/nxip/latest)
-  provider (pinned per-module, add a `version` constraint for your own
-  usage).
+  provider at `0.9` or later (each module pins `~> 0.9`; `landing_point`
+  arrived in that release).
 - The relevant cloud provider (`aws`, `azurerm`, or `google`) configured
   as normal, these modules only carve the CIDR, they don't touch cloud
   credentials or provision anything cloud-side themselves.
@@ -85,24 +85,18 @@ these ranges clear of your networks because nxip refuses to hand out
 anything overlapping a block it already knows about. A network nxip has
 never seen is the one overlap it cannot prevent, and the cloud will reject
 the cluster at create time.
-### Known limitation: these ranges are landing points
+
+### These ranges are not landing points
 
 Every range these modules create carries a `kind` (`k8s-service-cidr`,
-`k8s-pod-cidr`, and `k8s-vpc-cidr` when the EKS VPC subnet is not nested).
-That is what keeps the virtual ranges directly in the pool: a subnet with a
-`kind` is never placed inside another. But in nxip a `kind` on a subnet that
-sits directly in a pool also makes it a *landing point*, the subnet that
-ordinary requests for the same environment, region and family (no
-`parent_subnet_id`) are placed inside. So, in any environment and region
-where you use these modules:
-
-- **Next to a region block**, every ordinary subnet request there fails with
-  `More than one structural subnet matches environment ...` (409), because
-  it now matches two landing points.
-- **With no other landing point**, ordinary subnets would be placed inside
-  the Kubernetes service or pod range, which never exists on the network.
-
-Until this is fixed, create your other subnets in that environment and
-region with `parent_subnet_id` rather than by environment and region. See
+`k8s-pod-cidr`, and `k8s-vpc-cidr` for the EKS VPC subnet). That is what
+keeps the virtual ranges directly in the pool: a subnet with a `kind` is
+never placed inside another. From provider 0.9 every one of them is also
+created with `landing_point = false`, so it is structure only: it is never
+the subnet that ordinary requests for the same environment, region and
+family (no `parent_subnet_id`) are placed inside. Ordinary subnets in an
+environment and region where you use these modules land in the region
+block as expected, and the earlier workaround of passing
+`parent_subnet_id` on every other subnet there is no longer needed. The
+history is at
 [nx-ip.com/docs/troubleshooting#ambiguous-landing-point](https://nx-ip.com/docs/troubleshooting#ambiguous-landing-point).
-
